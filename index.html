@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>PURE SKELETON REPTILE | Lines & Dots | Glowing 3D Serpent</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            background-color: #02040c;
+        }
+
+        .info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(80, 220, 255, 0.85);
+            font-size: 12px;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.55);
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(6px);
+            pointer-events: none;
+            letter-spacing: 1px;
+            font-weight: 400;
+            border-left: 3px solid #00ffff;
+            font-family: monospace;
+        }
+
+        .title {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #aaffff;
+            font-size: 14px;
+            z-index: 100;
+            background: rgba(0, 5, 15, 0.7);
+            padding: 6px 16px;
+            border-radius: 30px;
+            backdrop-filter: blur(6px);
+            font-family: monospace;
+            letter-spacing: 2px;
+            pointer-events: none;
+            border-bottom: 1px solid #0cf;
+            text-shadow: 0 0 8px #00ccff;
+        }
+    </style>
+</head>
+<body>
+    
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+        
+        // --- setup scene with deep void ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x02040c);
+        scene.fog = new THREE.FogExp2(0x02040c, 0.006);
+
+        const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(9, 5, 16);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ReinhardToneMapping;
+        renderer.toneMappingExposure = 1.3;
+        document.body.appendChild(renderer.domElement);
+
+        // --- intense bloom for ethereal glow ---
+        const renderScene = new RenderPass(scene, camera);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.4, 0.35, 0.9);
+        bloomPass.threshold = 0.08;
+        bloomPass.strength = 1.55;
+        bloomPass.radius = 0.85;
+        const effectComposer = new EffectComposer(renderer);
+        effectComposer.addPass(renderScene);
+        effectComposer.addPass(bloomPass);
+
+        // --- controls: allow user to orbit, but no auto-rotate to let snake shine ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.autoRotate = false;
+        controls.enableZoom = true;
+        controls.zoomSpeed = 1.2;
+        controls.rotateSpeed = 0.9;
+        controls.target.set(0, 0.5, 0);
+
+        // --- atmospheric starfield (deep dots) ---
+        const starCount = 2800;
+        const starGeometry = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount; i++) {
+            starPositions[i*3] = (Math.random() - 0.5) * 280;
+            starPositions[i*3+1] = (Math.random() - 0.5) * 140;
+            starPositions[i*3+2] = (Math.random() - 0.5) * 100 - 50;
+        }
+        starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMaterial = new THREE.PointsMaterial({
+            color: 0x88ccff,
+            size: 0.1,
+            transparent: true,
+            opacity: 0.55,
+            blending: THREE.AdditiveBlending
+        });
+        const starsField = new THREE.Points(starGeometry, starMaterial);
+        scene.add(starsField);
+        
+        // --- floating micro-dots (dust) ---
+        const dustCount = 1500;
+        const dustGeo = new THREE.BufferGeometry();
+        const dustPositions = new Float32Array(dustCount * 3);
+        for (let i = 0; i < dustCount; i++) {
+            dustPositions[i*3] = (Math.random() - 0.5) * 40;
+            dustPositions[i*3+1] = (Math.random() - 0.5) * 25;
+            dustPositions[i*3+2] = (Math.random() - 0.5) * 35;
+        }
+        dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+        const dustMat = new THREE.PointsMaterial({
+            color: 0x55ddff,
+            size: 0.045,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending
+        });
+        const dustParticles = new THREE.Points(dustGeo, dustMat);
+        scene.add(dustParticles);
+        
+        // ========== MAIN SKELETON: PURE LINES + DOTS REPTILE ==========
+        // Instead of solid torus segments, we create:
+        // 1. A glowing LINE CORE (spine line)
+        // 2. DOT clusters (vertebrae) as spheres/points along spine
+        // 3. RIB LINES (thin line segments branching out)
+        // 4. Extra neural threads for "skeleton wireframe" look
+        
+        const skeletonGroup = new THREE.Group();
+        scene.add(skeletonGroup);
+        
+        const segmentCount = 130;      // number of vertebrae positions
+        // Store positions for dynamic update
+        const vertebraePositions = [];
+        const vertebraDots = [];       // actual dot meshes (spheres)
+        const ribLinePairs = [];       // store line objects for ribs
+        const extraSpineLines = [];    // additional decorative lines
+        
+        // --- Materials: ethereal glowing dots and lines ---
+        const dotMaterial = new THREE.MeshStandardMaterial({
+            color: 0x66ffcc,
+            emissive: 0x22ffaa,
+            emissiveIntensity: 0.85,
+            metalness: 0.2,
+            roughness: 0.3
+        });
+        
+        const dotMaterialAlt = new THREE.MeshStandardMaterial({
+            color: 0x88ffdd,
+            emissive: 0x44ffbb,
+            emissiveIntensity: 0.7
+        });
+        
+        // Line materials (glowing)
+        const spineLineMat = new THREE.LineBasicMaterial({ color: 0x44ffcc, transparent: true, blending: THREE.AdditiveBlending });
+        const ribLineMat = new THREE.LineBasicMaterial({ color: 0x88ffaa, transparent: true, blending: THREE.AdditiveBlending });
+        const neuralLineMat = new THREE.LineBasicMaterial({ color: 0x33ccff, transparent: true, blending: THREE.AdditiveBlending });
+        
+        // Create vertebrae dots (small spheres) and rib lines
+        for (let i = 0; i < segmentCount; i++) {
+            // Dot: main vertebra (glowing sphere)
+            const sphereGeo = new THREE.SphereGeometry(0.11, 12, 12);
+            const dotMesh = new THREE.Mesh(sphereGeo, dotMaterial.clone());
+            dotMesh.castShadow = false;
+            skeletonGroup.add(dotMesh);
+            vertebraDots.push(dotMesh);
+            
+            // Create rib lines: left and right branching lines from each vertebra
+            // We'll create LineSegments or individual lines that will be updated each frame
+            // For simplicity and performance: create 2 lines per vertebra (left rib, right rib)
+            // Each line has two points: from vertebra center to outward offset
+            const leftRibPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(-0.65, 0.1, 0)];
+            const rightRibPoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0.65, 0.1, 0)];
+            const leftRibGeo = new THREE.BufferGeometry().setFromPoints(leftRibPoints);
+            const rightRibGeo = new THREE.BufferGeometry().setFromPoints(rightRibPoints);
+            const leftRibLine = new THREE.Line(leftRibGeo, ribLineMat.clone());
+            const rightRibLine = new THREE.Line(rightRibGeo, ribLineMat.clone());
+            skeletonGroup.add(leftRibLine);
+            skeletonGroup.add(rightRibLine);
+            ribLinePairs.push({ left: leftRibLine, right: rightRibLine });
+            
+            // Extra "neural thread" - small extra line crossing upward (skeletal feel)
+            const spikePoints = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0.45, 0)];
+            const spikeGeo = new THREE.BufferGeometry().setFromPoints(spikePoints);
+            const spikeLine = new THREE.Line(spikeGeo, neuralLineMat.clone());
+            skeletonGroup.add(spikeLine);
+            extraSpineLines.push(spikeLine);
+            
+            vertebraePositions.push(new THREE.Vector3());
+        }
+        
+        // --- Main spine glow line: connects all vertebrae (core skeleton) ---
+        const spineLineGeometry = new THREE.BufferGeometry();
+        const spineGlowLine = new THREE.Line(spineLineGeometry, spineLineMat);
+        skeletonGroup.add(spineGlowLine);
+        
+        // --- Additional decorative "floating dots" that orbit around spine (like neural sparks) ---
+        const neuralDotsCount = 180;
+        const neuralDots = [];
+        for (let i = 0; i < neuralDotsCount; i++) {
+            const ndGeo = new THREE.SphereGeometry(0.045, 6, 6);
+            const ndMat = new THREE.MeshStandardMaterial({ color: 0xaaffdd, emissive: 0x33ffaa, emissiveIntensity: 0.9 });
+            const ndot = new THREE.Mesh(ndGeo, ndMat);
+            skeletonGroup.add(ndot);
+            neuralDots.push(ndot);
+        }
+        
+        // --- Trail particles (dot trail behind the snake) ---
+        const trailDotCount = 400;
+        const trailDots = [];
+        const trailPositionsArray = [];
+        for (let i = 0; i < trailDotCount; i++) {
+            const tGeo = new THREE.SphereGeometry(0.05, 6, 6);
+            const tMat = new THREE.MeshStandardMaterial({ color: 0x77ffdd, emissive: 0x33ccaa, emissiveIntensity: 0.6 });
+            const tDot = new THREE.Mesh(tGeo, tMat);
+            scene.add(tDot);
+            trailDots.push(tDot);
+            trailPositionsArray.push(new THREE.Vector3());
+        }
+        
+        // --- Head glow (reptile skull essence) ---
+        const headCoreMat = new THREE.MeshStandardMaterial({ color: 0xffaa88, emissive: 0xff6633, emissiveIntensity: 1.2 });
+        const headGlowMat = new THREE.MeshStandardMaterial({ color: 0xff8866, emissive: 0xff4422, emissiveIntensity: 1.1 });
+        const headSphere = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), headCoreMat);
+        const leftEyeGlow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), headGlowMat);
+        const rightEyeGlow = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 12), headGlowMat);
+        skeletonGroup.add(headSphere);
+        skeletonGroup.add(leftEyeGlow);
+        skeletonGroup.add(rightEyeGlow);
+        
+        // ========== 3D CURVE FOR SKELETON (autonomous slither) ==========
+        let animTime = 0;
+        
+        // Enhanced curve: more dynamic, smooth serpentine motion
+        function getSkeletonPoint(t, globalTime) {
+            // t: 0 tail -> 1 head
+            // organic 3D wave with extra twists
+            const freq1 = 2.6;
+            const freq2 = 3.1;
+            const waveX = Math.sin(t * Math.PI * freq1 + globalTime * 1.5) * 1.3;
+            const waveZ = Math.cos(t * Math.PI * freq2 + globalTime * 1.2) * 1.2;
+            const waveY = Math.sin(t * Math.PI * 2.0 + globalTime * 1.8) * 0.8;
+            const secondaryX = Math.sin(t * Math.PI * 5.0 + globalTime * 2.2) * 0.25;
+            const secondaryZ = Math.cos(t * Math.PI * 4.2 + globalTime * 1.9) * 0.3;
+            
+            const x = (t - 0.5) * 5.4 + waveX * 0.85 + secondaryX + Math.sin(globalTime * 0.7) * 0.2;
+            const y = Math.sin(t * Math.PI * 1.4) * 0.85 + waveY * 0.6 + Math.cos(globalTime * 0.9) * 0.15;
+            const z = Math.sin(t * Math.PI * 2.2) * 1.3 + waveZ * 0.9 + secondaryZ + Math.sin(globalTime * 1.1) * 0.25;
+            
+            // head lift effect
+            const headBoost = t > 0.88 ? (t - 0.88) * 1.8 : 0;
+            return new THREE.Vector3(x, y + headBoost * 0.5, z);
+        }
+        
+        // compute orientation for each vertebra (for rib direction)
+        function getTangentAndUp(t, globalTime, delta = 0.025) {
+            const p0 = getSkeletonPoint(t, globalTime);
+            const p1 = getSkeletonPoint(Math.min(t + delta, 0.999), globalTime);
+            const tangent = new THREE.Vector3().subVectors(p1, p0).normalize();
+            // approximate up vector (twist for rib rotation)
+            const worldUp = new THREE.Vector3(0, 1, 0);
+            const right = new THREE.Vector3().crossVectors(tangent, worldUp).normalize();
+            const up = new THREE.Vector3().crossVectors(right, tangent).normalize();
+            return { tangent, up, right };
+        }
+        
+        // store previous positions for line update
+        let spinePositions = new Float32Array(segmentCount * 3);
+        
+        // trail history buffer (for dot trail)
+        let headPositionHistory = [];
+        const maxTrailHistory = trailDotCount;
+        
+        function updateSkeleton(deltaTime) {
+            animTime += deltaTime * 0.92;
+            const globalAnim = animTime * 0.82;
+            
+            // 1. Update each vertebra dot position and update rib lines
+            for (let i = 0; i < segmentCount; i++) {
+                const u = i / (segmentCount - 1);
+                const pos = getSkeletonPoint(u, globalAnim);
+                vertebraePositions[i].copy(pos);
+                
+                // move the dot mesh
+                vertebraDots[i].position.copy(pos);
+                // slight pulse based on time
+                const intensity = 0.7 + Math.sin(animTime * 3 + i * 0.15) * 0.3;
+                vertebraDots[i].material.emissiveIntensity = intensity;
+                
+                // Get orientation for rib direction
+                const { tangent, up, right } = getTangentAndUp(u, globalAnim, 0.022);
+                
+                // Update rib lines: left and right offsets based on local orientation
+                // rib direction: sideways (right vector)
+                const leftOffset = right.clone().multiplyScalar(-0.68);
+                const rightOffset = right.clone().multiplyScalar(0.68);
+                const upOffset = up.clone().multiplyScalar(0.12);
+                const leftWorldPos = pos.clone().add(leftOffset).add(upOffset);
+                const rightWorldPos = pos.clone().add(rightOffset).add(upOffset);
+                
+                // Update left rib line geometry
+                const leftPoints = [pos, leftWorldPos];
+                const leftGeo = new THREE.BufferGeometry().setFromPoints(leftPoints);
+                ribLinePairs[i].left.geometry.dispose();
+                ribLinePairs[i].left.geometry = leftGeo;
+                
+                const rightPoints = [pos, rightWorldPos];
+                const rightGeo = new THREE.BufferGeometry().setFromPoints(rightPoints);
+                ribLinePairs[i].right.geometry.dispose();
+                ribLinePairs[i].right.geometry = rightGeo;
+                
+                // Extra spike/neural line: upward based on up vector
+                const spikeTip = pos.clone().add(up.clone().multiplyScalar(0.52));
+                const spikePoints = [pos, spikeTip];
+                const spikeGeo = new THREE.BufferGeometry().setFromPoints(spikePoints);
+                extraSpineLines[i].geometry.dispose();
+                extraSpineLines[i].geometry = spikeGeo;
+                
+                // store spine line position
+                spinePositions[i*3] = pos.x;
+                spinePositions[i*3+1] = pos.y;
+                spinePositions[i*3+2] = pos.z;
+            }
+            
+            // Update main spine glow line
+            spineGlowLine.geometry.dispose();
+            const spineLineBufferGeo = new THREE.BufferGeometry();
+            spineLineBufferGeo.setAttribute('position', new THREE.BufferAttribute(spinePositions.slice(), 3));
+            spineGlowLine.geometry = spineLineBufferGeo;
+            
+            // --- Update floating neural dots: they follow the spine with offsets ---
+            neuralDots.forEach((dot, idx) => {
+                const tParam = (idx / neuralDots.length) * 0.95 + (animTime * 0.15) % 1;
+                const segIndex = Math.floor(tParam * (segmentCount - 1));
+                const segIndexClamped = Math.min(segIndex, segmentCount - 2);
+                const tLocal = (tParam * (segmentCount - 1)) - segIndexClamped;
+                const posA = vertebraePositions[segIndexClamped];
+                const posB = vertebraePositions[segIndexClamped + 1];
+                const basePos = posA.clone().lerp(posB, tLocal);
+                // orbital offset around spine
+                const angle = idx * 0.35 + animTime * 2.2;
+                const radius = 0.48 + Math.sin(animTime * 1.8 + idx) * 0.12;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetZ = Math.sin(angle * 1.3) * radius;
+                const offsetY = Math.sin(angle * 1.7) * 0.28;
+                dot.position.copy(basePos.clone().add(new THREE.Vector3(offsetX, offsetY + 0.15, offsetZ)));
+                dot.material.emissiveIntensity = 0.7 + Math.sin(animTime * 5 + idx) * 0.5;
+            });
+            
+            // --- Head and eyes update (attach to last segment) ---
+            const headPos = vertebraePositions[segmentCount-1];
+            const headTangent = getTangentAndUp(0.98, globalAnim, 0.02).tangent;
+            const headUp = getTangentAndUp(0.98, globalAnim, 0.02).up;
+            const headRight = getTangentAndUp(0.98, globalAnim, 0.02).right;
+            
+            headSphere.position.copy(headPos);
+            const eyeOffsetForward = headTangent.clone().multiplyScalar(0.55);
+            const eyeOffsetUp = headUp.clone().multiplyScalar(0.22);
+            const eyeOffsetRightL = headRight.clone().multiplyScalar(-0.28);
+            const eyeOffsetRightR = headRight.clone().multiplyScalar(0.28);
+            leftEyeGlow.position.copy(headPos.clone().add(eyeOffsetForward).add(eyeOffsetUp).add(eyeOffsetRightL));
+            rightEyeGlow.position.copy(headPos.clone().add(eyeOffsetForward).add(eyeOffsetUp).add(eyeOffsetRightR));
+            
+            // pulsing head intensity
+            const headPulse = 0.9 + Math.sin(animTime * 8) * 0.4;
+            headSphere.material.emissiveIntensity = headPulse;
+            leftEyeGlow.material.emissiveIntensity = 1.2 + Math.sin(animTime * 10) * 0.5;
+            rightEyeGlow.material.emissiveIntensity = 1.2 + Math.sin(animTime * 10 + 2) * 0.5;
+            
+            // --- Trail of dots behind the snake (history) ---
+            headPositionHistory.unshift(headPos.clone());
+            if (headPositionHistory.length > maxTrailHistory) headPositionHistory.pop();
+            
+            for (let i = 0; i < trailDots.length; i++) {
+                if (i < headPositionHistory.length) {
+                    const trailPos = headPositionHistory[i];
+                    trailDots[i].position.copy(trailPos);
+                    // fade size/glow based on age
+                    const ageFactor = 1 - (i / trailDots.length);
+                    trailDots[i].material.emissiveIntensity = 0.4 + ageFactor * 0.7;
+                    trailDots[i].scale.setScalar(0.7 + ageFactor * 0.6);
+                } else {
+                    trailDots[i].position.set(0, -100, 0);
+                }
+            }
+            
+            // --- rotate background starfield and dust for ambiance ---
+            starsField.rotation.y += 0.0006;
+            starsField.rotation.x += 0.0003;
+            dustParticles.rotation.y += 0.0009;
+            dustParticles.rotation.z += 0.0005;
+        }
+        
+        // --- Extra enhancements: floating runic dots and glowing orbs around skeleton for "pure skeleton energy" ---
+        const energyOrbs = [];
+        for (let i = 0; i < 65; i++) {
+            const orbGeo = new THREE.SphereGeometry(0.07, 8, 8);
+            const orbMat = new THREE.MeshStandardMaterial({ color: 0x88ffdd, emissive: 0x33ffaa, emissiveIntensity: 0.8 });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            scene.add(orb);
+            energyOrbs.push(orb);
+        }
+        
+        function updateEnergyOrbs() {
+            energyOrbs.forEach((orb, idx) => {
+                // orbit around random vertebra or head
+                const targetIndex = Math.floor(Math.sin(idx * 0.3 + animTime) * (segmentCount - 1) + segmentCount/2) % segmentCount;
+                const basePos = vertebraePositions[targetIndex] || new THREE.Vector3(0,0,0);
+                const angle = idx * 0.9 + animTime * 2.3;
+                const radius = 0.85 + Math.sin(animTime * 1.4 + idx) * 0.2;
+                const offsetX = Math.cos(angle) * radius;
+                const offsetZ = Math.sin(angle * 1.2) * radius;
+                const offsetY = Math.sin(angle * 1.8) * 0.4;
+                orb.position.copy(basePos.clone().add(new THREE.Vector3(offsetX, offsetY + 0.2, offsetZ)));
+                orb.material.emissiveIntensity = 0.6 + Math.sin(animTime * 4 + idx) * 0.5;
+            });
+        }
+        
+        // --- Lighting to enhance skeleton glow ---
+        const ambientLight = new THREE.AmbientLight(0x050a18);
+        scene.add(ambientLight);
+        const mainLight = new THREE.DirectionalLight(0xaaccff, 0.7);
+        mainLight.position.set(3, 6, 4);
+        scene.add(mainLight);
+        const backLightCyan = new THREE.PointLight(0x33ccff, 0.6);
+        backLightCyan.position.set(-2, 2, -5);
+        scene.add(backLightCyan);
+        const fillPurple = new THREE.PointLight(0xaa66ff, 0.45);
+        fillPurple.position.set(1, 3, 2);
+        scene.add(fillPurple);
+        
+        // subtle reflective ground (barely visible, just for depth)
+        const gridHelper = new THREE.GridHelper(35, 24, 0x44aaff, 0x2266aa);
+        gridHelper.position.y = -2.7;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.15;
+        scene.add(gridHelper);
+        
+        // extra glowing particle field (tiny dots floating)
+        const extraGlowCount = 2200;
+        const extraGlowGeo = new THREE.BufferGeometry();
+        const extraGlowPos = new Float32Array(extraGlowCount * 3);
+        for (let i=0; i<extraGlowCount; i++) {
+            extraGlowPos[i*3] = (Math.random() - 0.5) * 55;
+            extraGlowPos[i*3+1] = (Math.random() - 0.5) * 25;
+            extraGlowPos[i*3+2] = (Math.random() - 0.5) * 45;
+        }
+        extraGlowGeo.setAttribute('position', new THREE.BufferAttribute(extraGlowPos, 3));
+        const extraGlowMat = new THREE.PointsMaterial({ color: 0x77ddff, size: 0.045, transparent: true, blending: THREE.AdditiveBlending });
+        const extraGlowPoints = new THREE.Points(extraGlowGeo, extraGlowMat);
+        scene.add(extraGlowPoints);
+        
+        // --- Animation Loop ---
+        let lastFrameTime = performance.now();
+        
+        function animateSkeleton() {
+            const now = performance.now();
+            let dt = Math.min(0.033, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+            if (dt > 0.001) {
+                updateSkeleton(dt);
+                updateEnergyOrbs();
+            }
+            
+            // rotate extra particles for subtle motion
+            extraGlowPoints.rotation.y += 0.0004;
+            extraGlowPoints.rotation.x += 0.0002;
+            dustParticles.rotation.x += 0.0007;
+            
+            controls.update();
+            effectComposer.render();
+            requestAnimationFrame(animateSkeleton);
+        }
+        
+        // initialize history with zeros
+        for (let i = 0; i < maxTrailHistory; i++) headPositionHistory.push(new THREE.Vector3(0, -10, 0));
+        
+        animateSkeleton();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            effectComposer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // small console output (no intrusive logs)
+        console.log("PURE SKELETON REPTILE | Lines + Dots active");
+    </script>
+</body>
+</html>
